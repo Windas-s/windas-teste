@@ -116,11 +116,23 @@
       .then(function (response) {
         if (response.ok) {
           response.json().then(function (resposta) {
-            console.log(`Dados recebidos: ${JSON.stringify(resposta)}`);  
-            
+            console.log(`Dados recebidos: ${JSON.stringify(resposta)}`);
+
             let statusTemperatura = 'ok';
             let statusUmidade = 'ok';
             let mensagemAlerta = 'Aqui entram os alertas';
+
+            let limitesTemperatura = {
+              quente: 26,
+              ideal: 24,
+              frio: 19,
+            };
+
+            let limitesUmidade = {
+              acima: 61,
+              ideal: 30,
+              frio: 29,
+            };
 
             /*-------------KPI TEMPERATURA------------------*/
 
@@ -148,23 +160,23 @@
             let umidade = resposta[0].umidade;
             kpi_umid_info.innerHTML = resposta[0].umidade + '%';
 
-            if(umidade < 30) {
+            if (umidade < 30) {
               status_message_umid.innerHTML = 'Umidade baixa';
               kpi_umid.className = 'container_umidade container umidade-abaixo';
               statusUmidade = 'not ok';
-            } else if(umidade >=30 && umidade < 60) {
+            } else if (umidade >= 30 && umidade < 60) {
               status_message_umid.innerHTML = 'Umidade ideal';
               kpi_umid.className = 'container_umidade container umidade-ideal';
               statusUmidade = 'ok';
-            } else if(umidade >= 60) {
+            } else if (umidade >= 60) {
               status_message_umid.innerHTML = 'Umidade alta';
               kpi_umid.className = 'container_umidade container umidade-alta';
               statusUmidade = 'not ok';
             }
 
             /*----------------KPI JANELA----------------*/
-            let statusJanela;
-            if (resposta[0].janela == 0) {
+            let statusJanela = resposta[0].janela;
+            if (statusJanela == 0) {
               statusJanela = 'Aberta';
               kpi_prox.className = 'container_proximidade container janela-aberta';
             } else {
@@ -184,7 +196,7 @@
               status_message_alerta.innerHTML = 'Sem alertas';
             }
 
-            // setTimeout(() => atualizarInfo() ,2000);
+            setTimeout(() => atualizarInfo(), 2000);
 
           });
         } else {
@@ -199,7 +211,4 @@
 
   }
 
-
 </script>
-
-<!-- <script src="./js/kpiDashHospede.js"></script> -->
