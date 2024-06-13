@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="shortcut icon" href="img/logo widas.png" type="image/x-icon">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"
+      rel="stylesheet"/>
+
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/login.css" />
+
+    <title>Winda's</title>
+  </head>
+
+  <body>
+    <div class="header">
+      <div class="container">
+        <a href="index.html"> <img src="img/logo_windas.svg" /></a>
+        <ul class="navbar">
+          <a href="index.html">
+            <li>Inicial</li>
+          </a>
+          <a href="index.html">
+            <li>Sobre nós</li>
+          </a>
+          <a href="index.html">
+            <li>Simulador</li>
+          </a>
+          <a href="index.html">
+            <li>Fale conosco</li>
+          </a>
+        </ul>
+        <div class="header-button"></div>
+      </div>
+    </div>
+
+    <img src="img/hotelLogin.jpg" id="imagem_cama" />
+
+    <div class="container_cadastro" id="container_cadastro">
+      <div class="cadastroSucesso" id="cadastroSucesso">
+        <p>Cadastro realizado com sucesso!</p>
+        <span>Faça login para continuar</span>
+      </div>
+
+      <div class="login">
+        <h1>Entrar na Winda's</h1>
+
+        <div class="inputs">
+          <input placeholder="Email" id="login_input_email" />
+          <span id="loginEmailErro" class="mensagemErro"></span>
+
+          <input placeholder="Senha" id="login_input_senha" type="password" />
+
+          <span id="loginSenhaErro" class="mensagemErro"></span>
+
+          <button class="login-button" onclick="entrar()">Login</button>
+
+          <div id="div_login"></div>
+
+          <div class="nao_tem_conta">
+            <h5>Novo na Winda's?</h5>
+
+            <button id="nao_tem_conta_button" onclick="habilitarCadastro()">
+              <a href="cadastro.html"> Cadastrar</a>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <h5 id="h5_cadastro"></h5>
+    </div>
+  </body>
+</html>
+
+<script src="js/login.js"></script>
+
+<script>
+  function entrar() {
+    var emailVar = login_input_email.value;
+    var senhaVar = login_input_senha.value;
+
+    if (emailVar == "" || senhaVar == "") {
+      alert("Por favor, preencha todos os campos");
+      return false;
+    }
+
+    console.log("FORM LOGIN: ", emailVar);
+    console.log("FORM SENHA: ", senhaVar);
+
+    fetch("/usuarios/autenticar", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        emailServer: emailVar,
+        senhaServer: senhaVar,
+      }),
+    })
+      .then(function (resposta) {
+        console.log("ESTOU NO THEN DO entrar()!");
+
+        if (resposta.ok) {
+          console.log(resposta);
+
+          resposta.json().then((json) => {
+            console.log("Jason:" + json);
+
+            console.log(JSON.stringify(json));
+            sessionStorage.EMAIL_USUARIO = json.email;
+            sessionStorage.NOME_USUARIO = json.nome;
+            sessionStorage.ID_USUARIO = json.id;
+            sessionStorage.quartos = JSON.stringify(json.quartos);
+
+            setTimeout(function () {
+              window.location = "./pages/inicio.html";
+            }, 1000); // apenas para exibir o loading
+          });
+        } else {
+          console.log("Houve um erro ao tentar realizar o login!");
+
+          resposta.text().then((texto) => {
+            console.error(texto);
+          });
+        }
+      })
+      .catch(function (erro) {
+        console.log(erro);
+      });
+
+    return false;
+  }
+</script>

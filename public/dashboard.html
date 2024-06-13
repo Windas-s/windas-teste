@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="css/dashboard.css" />
+    <!-- <link rel="stylesheet" href="css/dash/visaoGeral.css" /> -->
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+      integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    <script src="./js/kpiDash.js"></script>
+  </head>
+  <!-- validarSessao() -->
+
+  <body onload="chamarApi(), preencherSelectAndares(), exibirQuartosDoUsuario(), obterDadosGrafico()">
+    <div class="grid_container">
+      <aside class="aside">
+        <div class="usuario_container">
+          <h5>Olá <span id="b_usuario">usuário</span>!</h5>
+        </div>
+        <ul>
+          <li>
+            <img src="img/cama.svg" /><a href="pages/inicio.html"
+              >Visão geral</a
+            >
+          </li>
+        </ul>
+        <li>
+          <img src="img/cama.svg" />
+          <select id="andar_select" onchange="exibirQuartosDoUsuario()">
+            <option value="">Selecione um andar</option>
+          </select>
+        </li>
+        <ul id="ul_quartos"></ul>
+      </aside>
+
+      <div class="clima_tempo_container">
+        <h1 id="cidade">São Paulo</h1>
+        <div class="descricao"></div>
+        <div class="infos">
+          <div id="clima_tempo_temperatura">
+            <i id="temp_icon" class="fa-solid fa-temperature-quarter"></i>
+            <span>Temperatura:</span>
+            <b id="temp_value"></b>
+          </div>
+          <div class="clima_tempo_umidade">
+            <i id="umid_icon" class="fa-solid fa-droplet"></i>
+            <span>Umidade:</span>
+            <b id="umid_value"></b>
+          </div>
+        </div>
+      </div>
+
+      <div class="titulos_metricas">
+        <span id="temperatura">Metricas de Temperatura</span>
+        <span id="umidade">Metricas de Umidade</span
+          n>
+      </div>
+      <div class="container_metricas">
+        <div class="container-metricas-temperaturas">
+          <div id="alerta_temperatura_baixa">
+            <span>Abaixo 23Cº</span>
+          </div>
+          <div id="alerta_temperatura_ideal">
+            <span>Acima 23Cº até 25Cº</span>
+          </div>
+          <div id="alerta_temperatura_alta">
+            <span>Acima de 25Cº</span>
+          </div>
+        </div>
+
+        <div class="container-metricas-umidades">
+          <div id="alerta_umidade_baixa">
+            <span>Abaixo de 30%</span>
+          </div>
+          <div id="alerta_umidade_ideal">
+            <span>Acima de 30% até 60%</span>
+          </div>
+          <div id="alerta_umidade_alta">
+            <span>Acima de 60%</span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="container_temperatura container bgColorTempQ125"
+        id="kpi-temperatura"
+      ></div>
+
+      <div
+        class="container_umidade container bgColorUmiQ125"
+        id="kpi-umidade"
+      ></div>
+
+      <div class="container_proximidade container" id="kpi-proximidade"></div>
+
+      <div class="container_alerta container" id="kpi-alerta"></div>
+
+      <div id="graficos"></div>
+
+      <div class="container_grafico-temperatura" id="grafico-temperatura"></div>
+
+      <div class="container_grafico-umidade" id="grafico-umidade">
+        <canvas id="graficoUmidade"></canvas>
+      </div>
+    </div>
+
+    <div class="mensagem_erro"></div>
+    <div id="graficos"></div>
+  </body>
+</html>
+
+<script src="js/script.js"></script>
+<script src="js/graficos.js"></script>
+
+<script>
+  var quarto_selecionado = undefined;
+  var quartoSelecionado = JSON.parse(sessionStorage.dadosLeitura);
+
+  async function chamarApi() {
+    // const { json } = require("express");
+    const apiKey = "910c4efbe73c746cce373fd23d6fdf43";
+    const cidade = "São Paulo";
+    const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURI(
+      cidade,
+    )}&appid=${apiKey}&units=metric&lang=pt_br`;
+    const results = await fetch(apiUrl);
+    const json = await results.json();
+
+    if (json.cod === 200) {
+      mostrarInfo({
+        cidade: json.name,
+        pais: json.sys.country,
+        temp: json.main.temp,
+        umidade: json.main.humidity,
+        descricao: json.weather[0].description,
+        tempIcon: json.weather[0].icon,
+      });
+    } else {
+      alert("Ocoreu um erro de leitura do tempo externo...");
+    }
+  }
+
+  function mostrarInfo(json) {
+    document.querySelector("#cidade").innerHTML =
+      `${json.cidade}`;
+
+      document.querySelector("#cidade").innerHTML +=
+      `- clima externo`;
+
+    document.querySelector("#temp_value").innerHTML = `${json.temp
+      .toFixed(1)
+      .toString()
+      .replace(".", ",")} <sup>Cº</sup>`;
+
+    document.querySelector("#umid_value").innerHTML = `${json.umidade}`;
+  }
+
+  setInterval(async function inserirClima() {
+    const apiKey = "910c4efbe73c746cce373fd23d6fdf43";
+    const cidade = "São Paulo";
+    const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURI(
+      cidade,
+    )}&appid=${apiKey}&units=metric&lang=pt_br`;
+    const results = await fetch(apiUrl);
+    const json = await results.json();
+
+    fetch("/clima/armazenarClima", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        // crie um atributo que recebe o valor recuperado aqui
+        // Agora vá para o arquivo routes/usuario.js
+        cidadeServer: json.name,
+        tempServer: json.main.temp,
+        umidadeServer: json.main.humidity,
+      }),
+    })
+      .then(function (resposta) {
+        console.log("resposta: ", resposta);
+
+        if (resposta.ok) {
+          console.log("Métricas inseridas com sucesso no banco de dados!");
+        } else {
+          throw "Houve um erro ao tentar realizar o cadastro!";
+        }
+      })
+      .catch(function (resposta) {
+        console.log(`#ERRO: ${resposta}`);
+      });
+
+    return false;
+  }, 500000);
+
+  b_usuario.innerHTML = sessionStorage.NOME_USUARIO;
+
+  let proximaAtualizacao;
+  
+
+  function preencherSelectAndares() {
+    var quartos = JSON.parse(sessionStorage.quartos);
+    var selectAndar = document.getElementById("andar_select");
+    var andares = [...new Set(quartos.map((quarto) => quarto.andar))]; // Remover duplicatas
+
+    andares.forEach((andar) => {
+      var option = document.createElement("option");
+      option.value = andar;
+      option.textContent = andar;
+      selectAndar.appendChild(option);
+    });
+  }
+
+  function verificarAlertas(temperatura, umidade) {
+    const limitesTemperatura = {
+      idealBaixo: 23,
+      idealAlto: 25,
+    };
+
+    const limitesUmidade = {
+      idealBaixo: 30,
+      idealAlto: 60,
+    };
+
+    if (
+      temperatura < limitesTemperatura.idealBaixo ||
+      temperatura > limitesTemperatura.idealAlto
+    ) {
+      return true;
+    }
+
+    if (
+      umidade < limitesUmidade.idealBaixo ||
+      umidade > limitesUmidade.idealAlto
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  function exibirQuartosDoUsuario() {
+    var quartos = JSON.parse(sessionStorage.quartos);
+    var ul_quartos = document.getElementById("ul_quartos");
+    ul_quartos.innerHTML = ""; 
+
+    quartos.forEach((item) => {
+      fetch(`/medidas/tempo-real/${item.idQuarto}`, { cache: "no-store" })
+        .then(function (response) {
+          if (response.ok) {
+            response.json().then(function (resposta) {
+              const ultimoDado = resposta[0];
+              const alerta = verificarAlertas(
+                ultimoDado.temperatura,
+                ultimoDado.umidade,
+              );
+
+              ul_quartos.innerHTML += `
+                    <li class="btn_quarto" id='btn_quarto_${item.numero}' 
+                        onclick="obterDadosGrafico(${item.idQuarto}, ${item.numero})">
+                      <img src="img/cama.svg" />
+                      Quarto ${item.numero}
+                      ${alerta ? '<span class="alerta-li"><img src="img/alert.png" class="alerta-li"/></span>' : ""}
+                    </li>
+                  `;
+            });
+            
+          } else {
+            console.error("Nenhum dado encontrado ou erro na API");
+          }
+        })
+        .catch(function (error) {
+          console.error(
+            `Erro na obtenção dos dados p/ gráfico: ${error.message}`,
+          );
+        });
+    });
+
+  
+  if (quartos.length > 0) {
+    setTimeout(() => {
+      obterDadosGrafico(quartos[quartoSelecionado.idQuarto - 1].idQuarto, quartos[quartoSelecionado.numero - 1].numero);
+    }, 1000);
+  }
+}
+
+  function verificarAlertas(temperatura, umidade) {
+    const limitesTemperatura = {
+      idealBaixo: 23,
+      idealAlto: 25,
+    };
+
+    const limitesUmidade = {
+      idealBaixo: 30,
+      idealAlto: 60,
+    };
+
+    if (
+      temperatura < limitesTemperatura.idealBaixo ||
+      temperatura > limitesTemperatura.idealAlto
+    ) {
+      return true;
+    }
+
+    if (
+      umidade < limitesUmidade.idealBaixo ||
+      umidade > limitesUmidade.idealAlto
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  function alterarTitulo(idQuarto) {
+    var tituloQuarto = document.getElementById(`tituloQuarto${idQuarto}`);
+    var descricao = JSON.parse(sessionStorage.Quartos).find(
+      (item) => item.id == idQuarto,
+    ).descricao;
+    tituloQuarto.innerHTML =
+      "Últimas medidas de Temperatura e Umidade do <span style='color: #e6005a'>" +
+      descricao +
+      "</span>";
+  }
+
+  function obterDadosGrafico(idQuarto, numero) {
+    console.log("idQuarto SELECIONADO: ", idQuarto);
+
+    document.getElementById("grafico-temperatura").innerHTML = `  
+    <canvas id="graficoTemperatura${idQuarto}"></canvas>
+    <div class="label-captura">
+                        <p id="avisoCaptura${idQuarto}" class='aviso_captura'></p>
+                    </div>
+  `;
+    document.getElementById("grafico-umidade").innerHTML = `  
+    <canvas id="graficoUmidade${idQuarto}"></canvas>
+  `;
+
+    document.getElementById("kpi-temperatura").innerHTML = `
+                    <div id="card_${idQuarto}">
+                      <h3 class="titulo_container">Temperatura</h3>
+                      <p class="paragrafo_container" id="temp_quarto_${idQuarto}"> <img src="img/load.gif" alt="" style='width: 120px'></p>
+                      <span id="descricao_quarto_${idQuarto}" class='span-kpi'></span>
+                    </div>
+    `;
+
+    document.getElementById("kpi-umidade").innerHTML = `
+                    <div id="card_umidade_${idQuarto}">
+                      <h3 class="titulo_container">Umidade</h3>
+                      <p class="paragrafo_container" id="umid_quarto_${idQuarto}"> <img src="img/load.gif" alt="" style='width: 120px'></p>
+                      <span id="descricao_umidade_quarto_${idQuarto}" class='span-kpi'></span>
+                    </div>
+    `;
+
+    document.getElementById("kpi-proximidade").innerHTML = `
+                    <div id="card_proximidade_${idQuarto}">
+                      <h3 class="titulo_container">Janela</h3>
+                      <p class="paragrafo_container" id="prox_quarto_${idQuarto}"> <img src="img/load.gif" alt="" style='width: 120px'></p>
+                      <span id="descricao_proximidade_quarto_${idQuarto}" class='span-kpi'></span>
+                    </div>
+    `;
+
+    document.getElementById("kpi-alerta").innerHTML = `
+                    <div id="card_alerta_${idQuarto}">
+                      <h3 class="titulo_container">Alerta⚠️</h3>
+                      <p class="paragrafo_container-alerta" id="alerta_quarto_${idQuarto}"> <img src="img/load.gif" alt="" style='width: 120px'></p>
+                      <span id="descricao_alerta_quarto_${idQuarto}" class='span-kpi'></span>
+                    </div>
+
+    `;
+
+    // Adicionar a classe 'selected' ao item clicado
+    var btn_quarto = document.getElementById(`btn_quarto_${numero}`);
+    // Remover a classe 'selected' de todos os outros itens
+    document.querySelectorAll(".btn_quarto").forEach((item) => {
+      item.classList.remove("selected");
+    });
+    // Adicionar a classe 'selected' ao item clicado
+    btn_quarto.classList.add("selected");
+
+    fetch(`/medidas/ultimas/${idQuarto}`, { cache: "no-store" })
+      .then(function (response) {
+        if (response.ok) {
+          response.json().then(function (resposta) {
+            console.log(`Dados recebidos: ${JSON.stringify(resposta)}`);
+            resposta.reverse();
+            plotarGraficos(resposta, idQuarto);
+          });
+        } else {
+          console.error("Nenhum dado encontrado ou erro na API");
+        }
+      })
+      .catch(function (error) {
+        console.error(
+          `Erro na obtenção dos dados p/ gráfico: ${error.message}`,
+        );
+      });
+  }
+
+  function plotarGraficos(resposta, idQuarto) {
+    console.log("iniciando plotagem dos gráficos...");
+
+    // Criando estrutura para plotar gráfico - labels
+    let labels = [];
+    let dadosTemperatura = [];
+    let dadosUmidade = [];
+
+    console.log("----------------------------------------------");
+    console.log(
+      'Estes dados foram recebidos pela funcao "obterDadosGrafico" e passados para "plotarGraficos":',
+    );
+    console.log(resposta);
+
+    // Inserindo valores recebidos em estrutura para plotar os gráficos
+    for (let i = 0; i < resposta.length; i++) {
+      var registro = resposta[i];
+      labels.push(registro.momento_grafico);
+      dadosTemperatura.push(registro.temperatura);
+      dadosUmidade.push(registro.umidade);
+    }
+
+    console.log("----------------------------------------------");
+    console.log("Os gráficos serão plotados com os respectivos valores:");
+    console.log("Labels:");
+    console.log(labels);
+    console.log("Dados de Temperatura:");
+    console.log(dadosTemperatura);
+    console.log("Dados de Umidade:");
+    console.log(dadosUmidade);
+    console.log("----------------------------------------------");
+
+    // Criando estrutura para plotar gráfico de temperatura
+    const configTemperatura = {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Temperatura",
+            data: dadosTemperatura,
+            fill: false,
+            borderColor: "rgba(199, 52, 52)",
+            backgroundColor: "rgba(199, 52, 52)",
+            tension: 0.1,
+          },
+        ],
+      },
+    };
+
+    // Criando estrutura para plotar gráfico de umidade
+    const configUmidade = {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Umidade",
+            data: dadosUmidade,
+            fill: false,
+            borderColor: "rgb(75, 192, 192)",
+            backgroundColor: "rgb(75, 192, 192)",
+            tension: 0.1,
+          },
+        ],
+      },
+    };
+
+    // Adicionando gráficos criados em divs na tela
+    let myChartTemperatura = new Chart(
+      document.getElementById(`graficoTemperatura${idQuarto}`),
+      configTemperatura,
+    );
+
+    let myChartUmidade = new Chart(
+      document.getElementById(`graficoUmidade${idQuarto}`),
+      configUmidade,
+    );
+
+        atualizarGraficos(
+          idQuarto,
+          labels,
+          dadosTemperatura,
+          dadosUmidade,
+          myChartTemperatura,
+          myChartUmidade,
+        )
+  }
+
+  function atualizarGraficos(
+    idQuarto,
+    labels,
+    dadosTemperatura,
+    dadosUmidade,
+    myChartTemperatura,
+    myChartUmidade,
+  ) {
+    fetch(`/medidas/tempo-real/${idQuarto}`, { cache: "no-store" })
+      .then(function (response) {
+        if (response.ok) {
+          response.json().then(function (novoRegistro) {
+            obterdados(idQuarto);
+            console.log(`Dados recebidos: ${JSON.stringify(novoRegistro)}`);
+            console.log(`Dados atuais dos gráficos:`);
+            console.log(labels, dadosTemperatura, dadosUmidade);
+
+            let avisoCaptura = document.getElementById(
+              `avisoCaptura${idQuarto}`,
+            );
+            
+            avisoCaptura.innerHTML = "";
+
+            if (novoRegistro[0].momento_grafico == labels[labels.length - 1]) {
+              console.log(
+                "Como não há dados novos para captura, os gráficos não atualizara.",
+              );
+              avisoCaptura.innerHTML =
+                "<i class='fa-solid fa-triangle-exclamation'></i> Foi trazido o dado mais atual capturado pelo sensor. <br> Como não há dados novos a exibir, os gráficos não atualizarão.";
+            } else {
+              // tirando e colocando valores nos gráficos
+              labels.shift(); // apagar o primeiro
+              labels.push(novoRegistro[0].momento_grafico); // incluir um novo momento
+
+              dadosTemperatura.shift(); // apagar o primeiro de temperatura
+              dadosTemperatura.push(novoRegistro[0].temperatura); // incluir uma nova medida de temperatura
+
+              dadosUmidade.shift(); // apagar o primeiro de umidade
+              dadosUmidade.push(novoRegistro[0].umidade); // incluir uma nova medida de umidade
+
+              myChartTemperatura.update();
+              myChartUmidade.update();
+            }
+
+            proximaAtualizacao = setTimeout(
+              () =>
+                atualizarGraficos(
+                  idQuarto,
+                  labels,
+                  dadosTemperatura,
+                  dadosUmidade,
+                  myChartTemperatura,
+                  myChartUmidade,
+                ),
+              2000,
+            );
+          });
+        } else {
+          console.error("Nenhum dado encontrado ou erro na API");
+          proximaAtualizacao = setTimeout(
+            () =>
+              atualizarGraficos(
+                idQuarto,
+                labels,
+                dadosTemperatura,
+                dadosUmidade,
+                myChartTemperatura,
+                myChartUmidade,
+              ),
+            2000,
+          );
+        }
+      })
+      .catch(function (error) {
+        console.error(
+          `Erro na obtenção dos dados p/ gráfico: ${error.message}`,
+        );
+      });
+  }
+</script>

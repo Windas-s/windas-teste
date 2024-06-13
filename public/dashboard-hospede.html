@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="pt-br">
+
+<head>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="css/dashboard-hospede.css" />
+
+</head>
+
+<body onload="atualizarInfo()">
+
+  <div class="grid_container">
+
+    <header class="cabecalho">
+
+      <ul class="navbar">
+
+        <li>Quarto Nº: 126</li>
+
+        <a href=""><img src="img/logo.svg" /></a>
+
+        <li>Seja bem vindo(a)!</li>
+
+      </ul>
+
+
+      <!-- <ul class="navbar">
+          
+          <a href=""><li>Sobre nós</li></a>
+          <a href=""><li>Fale conosco</li></a>
+          
+        </ul> -->
+
+
+    </header>
+
+    <div class="titulos_metricas">
+      <span id="temperatura">Temperatura</span>
+      <span id="umidade">Umidade</span>
+    </div>
+
+    <div class="container_metricas">
+
+      <div class="container-metricas-temperaturas">
+        <div id="alerta_temperatura_baixa">
+          <span>Abaixo 15Cº</span>
+        </div>
+        <div id="alerta_temperatura_ideal">
+          <span>Acima 23Cº até 25Cº</span>
+        </div>
+        <div id="alerta_temperatura_alta">
+          <span>Acima de 25Cº</span>
+        </div>
+      </div>
+
+      <div class="container-metricas-umidades">
+        <div id="alerta_umidade_baixa">
+          <span>Abaixo de 30%</span>
+        </div>
+        <div id="alerta_umidade_ideal">
+          <span>Acima de 30% até 60%</span>
+        </div>
+        <div id="alerta_umidade_alta">
+          <span>Acima de 60%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="container_temperatura container" id="kpi_temp">
+
+      <h3 class="titulo_container">Temperatura</h3>
+      <p class="paragrafo_container" id="kpi_temp_info"> </p>
+      <span id="status_message_temp" </span>
+
+    </div>
+
+    <div class="container_umidade container" id="kpi_umid">
+
+      <h3 class="titulo_container">Umidade</h3>
+      <p class="paragrafo_container" id="kpi_umid_info"> 💧</p>
+      <span id="status_message_umid"></span>
+
+    </div>
+
+    <div class="container_proximidade container" id="kpi_prox">
+
+      <h3 class="titulo_container">Proximidade</h3>
+      <p class="paragrafo_container" id="kpi_prox_info"> 🪟</p>
+      <!-- <span id="status-message"></span> -->
+
+    </div>
+
+    <div class="container_alerta container" id="kpi_alerta">
+
+      <h3 class="titulo_container">Alerta</h3>
+      <p class="paragrafo_container"></p>
+      <span id="status_message_alerta"></span>
+
+    </div>
+
+  </div>
+
+</body>
+
+</html>
+
+<script>
+
+  let idQuarto = 1;
+
+  function atualizarInfo() {
+    fetch(`/medidas/tempo-real/${idQuarto}`, { cache: "no-store" })
+      .then(function (response) {
+        if (response.ok) {
+          response.json().then(function (resposta) {
+            console.log(`Dados recebidos: ${JSON.stringify(resposta)}`);  
+            
+            let statusTemperatura = 'ok';
+            let statusUmidade = 'ok';
+            let mensagemAlerta = 'Aqui entram os alertas';
+
+            /*-------------KPI TEMPERATURA------------------*/
+
+            let temperatura = resposta[0].temperatura;
+            kpi_temp_info.innerHTML = temperatura + 'ºC';
+            kpi_temp.className = '';
+
+            if (temperatura < 15) {
+              status_message_temp.innerHTML = "Temperatura baixa";
+              kpi_temp.className = 'container_temperatura container temperatura-baixa';
+              statusTemperatura = 'not ok'
+
+            } else if (temperatura >= 23 && temperatura <= 25) {
+              status_message_temp.innerHTML = "Temperatura ideal";
+              kpi_temp.className = 'container_temperatura container temperatura-ideal';
+              statusTemperatura = 'ok';
+            } else if (temperatura > 25) {
+              status_message_temp.innerHTML = 'Temperatura alta';
+              kpi_temp.className = 'container_temperatura container temperatura-quente';
+              statusTemperatura = 'not ok';
+            }
+
+            /*---------------KPI UMIDADE------------*/
+
+            let umidade = resposta[0].umidade;
+            kpi_umid_info.innerHTML = resposta[0].umidade + '%';
+
+            if(umidade < 30) {
+              status_message_umid.innerHTML = 'Umidade baixa';
+              kpi_umid.className = 'container_umidade container umidade-abaixo';
+              statusUmidade = 'not ok';
+            } else if(umidade >=30 && umidade < 60) {
+              status_message_umid.innerHTML = 'Umidade ideal';
+              kpi_umid.className = 'container_umidade container umidade-ideal';
+              statusUmidade = 'ok';
+            } else if(umidade >= 60) {
+              status_message_umid.innerHTML = 'Umidade alta';
+              kpi_umid.className = 'container_umidade container umidade-alta';
+              statusUmidade = 'not ok';
+            }
+
+            /*----------------KPI JANELA----------------*/
+            let statusJanela;
+            if (resposta[0].janela == 0) {
+              statusJanela = 'Aberta';
+              kpi_prox.className = 'container_proximidade container janela-aberta';
+            } else {
+              statusJanela = 'Fechada';
+              kpi_prox.className = 'container_proximidade container janela-fechada';
+            }
+
+            kpi_prox_info.innerHTML = statusJanela;
+
+            /*---------- KPI ALERTA ----------*/
+
+            if (statusTemperatura != 'ok' || statusUmidade != 'ok') {
+              kpi_alerta.className = 'container_alerta container alerta';
+              status_message_alerta.innerHTML = mensagemAlerta;
+            } else {
+              kpi_alerta.className = 'container_alerta container';
+              status_message_alerta.innerHTML = 'Sem alertas';
+            }
+
+            // setTimeout(() => atualizarInfo() ,2000);
+
+          });
+        } else {
+          console.error("Nenhum dado encontrado ou erro na API");
+        }
+      })
+      .catch(function (error) {
+        console.error(
+          `Erro na obtenção dos dados p/ gráfico: ${error.message}`,
+        );
+      });
+
+  }
+
+
+</script>
+
+<!-- <script src="./js/kpiDashHospede.js"></script> -->

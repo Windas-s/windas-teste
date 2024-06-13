@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="../css/dash/visaoGeral.css" />
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="../js/sessao.js"></script>
+  </head>
+
+  <body
+    onload="validarSessao(), exibirQuartos(), atualizacaoPeriodica(), preencherSelectAndares()"
+  >
+    <div class="grid_container">
+      <aside class="aside">
+        <div class="usuario_container">
+          <div class="hello">
+            <h3>Olá, <span id="b_usuario">usuário</span>!</h3>
+          </div>
+        </div>
+        <ul>
+          <li>
+            <img src="../img/cama.svg" /><a
+              href="inicio.html"
+              style="color: #001d6c; font-weight: bold"
+              >Visão geral</a
+            >
+          </li>
+          <li>
+            <img src="../img/cama.svg" />
+            <select id="andar_select" onchange="exibirQuartos()"></select>
+          </li>
+          <li>
+            <img src="../img/cama.svg" /><a href="../dashboard.html">Quartos</a>
+          </li>
+          <li class="btn-sair">
+            <img src="../img/cama.svg" /><a onclick="limparSessao()">Sair</a>
+          </li>
+        </ul>
+      </aside>
+
+      <div class="titulos_metricas">
+        <span id="temperatura">Metricas Temperatura</span>
+        <span id="Umidade">Umidade</span>
+      </div>
+
+      <div class="container_metricas">
+        <div class="container-metricas-temperaturas">
+          <div id="alerta_temperatura_baixa" class="altura-certa">
+            <span>Abaixo 15Cº</span>
+          </div>
+          <div id="alerta_temperatura_ideal" class="altura-certa">
+            <span>Acima 23Cº até 25Cº</span>
+          </div>
+          <div id="alerta_temperatura_alta" class="altura-certa">
+            <span>Acima de 25Cº</span>
+          </div>
+        </div>
+
+        <div class="container-metricas-umidades" class="altura-certa">
+          <div id="alerta_umidade_baixa" class="altura-certa">
+            <span>Abaixo de 30%</span>
+          </div>
+          <div id="alerta_umidade_ideal" class="altura-certa">
+            <span>Acima de 30% até 60%</span>
+          </div>
+          <div id="alerta_umidade_alta" class="altura-certa">
+            <span>Acima de 60%</span>
+          </div>
+        </div>
+      </div>
+      <div id="cardQuartos" style="cursor: pointer;"></div>
+    </div>
+  </body>
+</html>
+
+<script>
+  function exibirQuartos(idQuarto, numero) {
+    var quartos = JSON.parse(sessionStorage.quartos);
+    var andarSelecionado = document.getElementById("andar_select").value;
+
+    // Limpa o conteúdo atual dos quartos
+    document.getElementById("cardQuartos").innerHTML = "";
+
+    if (andarSelecionado) {
+      quartos = quartos.filter((quarto) => quarto.andar === andarSelecionado);
+    }
+
+    quartos.forEach((item) => {
+      document.getElementById("cardQuartos").innerHTML += `
+        <div id="card_${item.idQuarto}" onclick="salvarDadosQuarto(${item.idQuarto}, '${item.numero}')">
+          <h3 class="titulo_container">Quarto ${item.numero}</h3>
+          <p class="paragrafo_container" id="temp_quarto_${item.idQuarto}">${item.temperatura}°C 🌡️</p>
+          <span id="descricao_quarto_${item.idQuarto}" style='font-weight: bold'></span>
+        </div>
+      `;
+    });
+  }
+
+  function salvarDadosQuarto(idQuarto, numero) {
+    let dados = {
+      idQuarto: idQuarto,
+      numero: numero,
+    };
+
+    let dadosJSON = JSON.stringify(dados);
+
+    sessionStorage.setItem("dadosLeitura", dadosJSON);
+    window.location.href = "../dashboard.html"; 
+  }
+
+  function preencherSelectAndares() {
+    var quartos = JSON.parse(sessionStorage.quartos);
+    var selectAndar = document.getElementById("andar_select");
+
+    // Limpa as opções atuais
+    selectAndar.innerHTML = "";
+
+    var andares = [...new Set(quartos.map((quarto) => quarto.andar))]; // Remover duplicatas
+
+    // Adiciona uma opção padrão
+    var optionDefault = document.createElement("option");
+    optionDefault.value = "";
+    optionDefault.textContent = "Selecione um andar";
+    selectAndar.appendChild(optionDefault);
+
+    // Preenche o select com os andares
+    andares.forEach((andar) => {
+      var option = document.createElement("option");
+      option.value = andar;
+      option.textContent = andar;
+      selectAndar.appendChild(option);
+    });
+  }
+</script>
